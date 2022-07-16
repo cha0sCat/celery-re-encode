@@ -1,3 +1,5 @@
+import sys
+
 from celery import Celery
 from config import BROKER, BACKEND
 
@@ -21,5 +23,4 @@ Task.__class_getitem__ = classmethod(lambda cls, *args, **kwargs: cls)
 
 
 if __name__ == '__main__':
-    app.start()
-    app.task()
+    app.start(sys.argv[1:] or ['worker', '--loglevel', 'INFO'])
