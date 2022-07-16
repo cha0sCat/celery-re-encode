@@ -32,8 +32,8 @@ def rclone_copy(src: str, dst: str, extra_args: list = None):
             'stderr:{}'.format(
                 src,
                 dst,
-                result.stdout.decode(),
-                result.stderr.decode()
+                result.stdout.decode(errors='ignore'),
+                result.stderr.decode(errors='ignore')
             ))
 
 
@@ -50,6 +50,6 @@ def rclone_delete(target: str, extra_args: list = None):
             'stdout:{} \n'
             'stderr:{}'.format(
                 target,
-                result.stdout.decode(),
-                result.stderr.decode()
+                result.stdout.decode(errors='ignore'),
+                result.stderr.decode(errors='ignore')
             ))
