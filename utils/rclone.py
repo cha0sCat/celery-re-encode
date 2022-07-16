@@ -1,4 +1,8 @@
+import os
 from subprocess import PIPE, run
+from celery.utils.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class RcloneCopyError(Exception):
@@ -10,6 +14,11 @@ class RcloneDeleteError(Exception):
 
 
 def rclone_copy(src: str, dst: str, extra_args: list = None):
+    logger.info(
+        "rclone_copy:\n" +
+        " ".join(["rclone", "copyto", src, dst, "--b2-upload-cutoff", "100M"] + (extra_args or [])) + "\n" +
+        os.getcwd() + "\n"
+    )
     result = run(
         ["rclone", "copyto", src, dst, "--b2-upload-cutoff", "100M"] + (extra_args or []),
         stdout=PIPE, stderr=PIPE

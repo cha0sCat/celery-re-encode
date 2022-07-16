@@ -1,4 +1,5 @@
 import os
+import time
 
 from app import app
 from celery import Task
@@ -7,6 +8,11 @@ from utils.ffmpeg import ffmpeg_transcode
 
 
 EXTRA_ARGS = ["--config", "rclone.conf"]
+
+
+@app.task(bind=True, soft_time_limit=16, time_limit=16, acks_late=True)
+def sleep(self, seconds):
+    time.sleep(seconds)
 
 
 @app.task(bind=True)
