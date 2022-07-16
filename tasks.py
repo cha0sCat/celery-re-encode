@@ -15,7 +15,7 @@ def sleep(self, seconds):
     time.sleep(seconds)
 
 
-@app.task(bind=True)
+@app.task(bind=True, acks_late=True)
 def transcode(self: Task, src: str, dst: str):
     src_file_ext = os.path.splitext(src)[1]
     tmp_src_file_name = self.request.id + src_file_ext
