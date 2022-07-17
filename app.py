@@ -16,6 +16,7 @@ app.conf.update(
     # task_store_errors_even_if_ignored=True,
     task_soft_time_limit=2*60*60,  # 2 hours
     task_track_started=True,
+    task_reject_on_worker_lost=True,
 )
 
 from celery.app.task import Task
