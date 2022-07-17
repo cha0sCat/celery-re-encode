@@ -68,6 +68,9 @@ def ffmpeg_error_handler(exc: Exception, src: str, dst: str, extra_args: list = 
     if "1 channels (FL)" in exc.args[0]:
         return single_channel_handler(src, dst, extra_args)
 
+    elif "1 channels (FR)" in exc.args[0]:
+        return single_channel_handler(src, dst, extra_args)
+
     elif "Input contains (near) NaN/+-Inf" in exc.args[0]:
         return input_contains_inf_handler(src, dst, extra_args)
 
