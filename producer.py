@@ -1,5 +1,6 @@
 import json
 import os
+import concurrent.futures
 
 from tasks import transcode, sleep, app
 from subprocess import run, PIPE
@@ -16,14 +17,41 @@ def write_log(msg):
     log.flush()
 
 
-def main():
-    cmd = ["rclone", "ls", SRC_RCLONE_PATH, "--include", "*.wav", "--config", "rclone.conf", "--fast-list"]
-    print(" ".join(cmd))
+def ls(path, include) -> list[str]:
+    cmd = ["rclone", "ls", path, "--include", include, "--config", "rclone.conf", "--fast-list"]
     res = run(cmd, stdout=PIPE)
 
-    for file in res.stdout.decode().splitlines():
-        file = " ".join(file.lstrip(" ").lstrip("\t").split(" ")[1:])
+    files = res.stdout.decode().splitlines()
 
+    # clean strings
+    # "  6661590 kikoeru-m4a/available/そらまめ。/RJ140635 美味しいそらまめ採れました。/01 そらまめ売りの少女 導入部.m4a"
+    # "kikoeru-m4a/available/そらまめ。/RJ140635 美味しいそらまめ採れました。/01 そらまめ売りの少女 導入部.m4a"
+    files = list(map(
+        lambda file: " ".join(file.lstrip(" ").lstrip("\t").split(" ")[1:]),
+        files
+    ))
+
+    return files
+
+
+def main():
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+
+    print("list src files")
+    src_files = pool.submit(ls, SRC_RCLONE_PATH, "*.wav")  # ls(SRC_RCLONE_PATH, "*.wav")
+
+    print("list dst files")
+    dst_files = pool.submit(ls, DST_RCLONE_PATH, "*.m4a")  # ls(DST_RCLONE_PATH, "*.m4a")
+
+    src_files, dst_files = src_files.result(), dst_files.result()
+
+    diff = list(
+        set(src_files) -
+        set(list(map(lambda filename: filename[:-4] + ".wav", dst_files)))
+    )
+    print("diff:", len(diff))
+
+    for file in diff:
         # skip if filename starts with ._
         if os.path.basename(file).startswith("."):
             continue
@@ -60,5 +88,5 @@ def shutdown():
 
 if __name__ == '__main__':
     # test_2()
-    # main()
-    shutdown()
+    main()
+    # shutdown()
