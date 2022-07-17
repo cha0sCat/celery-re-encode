@@ -2,8 +2,10 @@ import json
 import os
 import concurrent.futures
 
-from tasks import transcode, sleep, app
+from tasks import transcode, sleep, app, update
 from subprocess import run, PIPE
+
+from utils.rclone import rclone_delete
 
 SRC_RCLONE_PATH = "re-encode-raw-read:kikoeru-one/"
 DST_RCLONE_PATH = "re-encode-m4a-upload:kikoeru-m4a/"
@@ -33,18 +35,26 @@ def ls(path, include) -> list[str]:
     return files
 
 
-def diff(pool) -> list[str]:
+def diff(
+        pool,
+        src=SRC_RCLONE_PATH,
+        dst=DST_RCLONE_PATH,
+        src_ext=".wav",
+        dst_ext=".m4a"
+) -> list[str]:
     print("list src files")
-    src_files = pool.submit(ls, SRC_RCLONE_PATH, "*.wav")  # ls(SRC_RCLONE_PATH, "*.wav")
+    src_files = pool.submit(ls, src, "*" + src_ext)  # ls(SRC_RCLONE_PATH, "*.wav")
 
     print("list dst files")
-    dst_files = pool.submit(ls, DST_RCLONE_PATH, "*.m4a")  # ls(DST_RCLONE_PATH, "*.m4a")
+    dst_files = pool.submit(ls, dst, "*" + dst_ext)  # ls(DST_RCLONE_PATH, "*.m4a")
 
     src_files, dst_files = src_files.result(), dst_files.result()
 
     diff_files = list(
         set(src_files) -
-        set(list(map(lambda filename: filename[:-4] + ".wav", dst_files)))
+        # 先把 dst 的文件后缀改成和 src 一样，再比较
+        # 只比对文件名，不比对文件后缀
+        set(list(map(lambda filename: filename[:-len(dst_ext)] + src_ext, dst_files)))
     )
     print("diff:", len(diff_files))
     return diff_files
@@ -89,12 +99,11 @@ def sync_main():
         transcode.delay(
             os.path.join(SRC_RCLONE_PATH, file),
             os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
-        ).get(),
+        ),
         diff(pool)
     )
 
-    for future in concurrent.futures.as_completed(futures):
-        future.result().get()
+    list(map(lambda future: future.get(), futures))
 
 
 def test():
@@ -108,7 +117,36 @@ def shutdown():
     app.control.shutdown()
 
 
+def worker_update():
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=512)
+    pool.map(lambda _: update.delay().get(), range(5000))
+    pool.shutdown(wait=True)
+
+    shutdown()
+
+
+def delete_non_exist():
+    """
+    清理转码内容
+    有时候原档因为更名、移动已经不存在了，m4a文件留着也没什么用
+    就都清理掉
+    :return:
+    """
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+
+    list(pool.map(
+        lambda file:
+        rclone_delete(os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a"), ["--config", "rclone.conf"]),
+        diff(pool, DST_RCLONE_PATH, SRC_RCLONE_PATH, ".m4a", ".wav")
+    ))
+
+    pool.shutdown(wait=True)
+
+
 if __name__ == '__main__':
-    sync_main()
+    # sync_main()
     # shutdown()
     # test()
+    # worker_update()
+    sync_main()
+    delete_non_exist()
