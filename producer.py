@@ -73,13 +73,9 @@ def main():
 
 def test():
     transcode.delay(
-        're-encode-raw-read:kikoeru-one/導入部.wav',
-        're-encode-m4a-upload:kikoeru-m4a/導入部.m4a'
-    ).forget()
-
-
-def test_2():
-    sleep.delay(10)
+        "example/error.wav",
+        "example/error.m4a"
+    ).get()
 
 
 def shutdown():
@@ -87,6 +83,6 @@ def shutdown():
 
 
 if __name__ == '__main__':
-    # test_2()
     main()
     # shutdown()
+    # test()
