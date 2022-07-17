@@ -5,7 +5,6 @@ import concurrent.futures
 from tasks import transcode, sleep, app
 from subprocess import run, PIPE
 
-
 SRC_RCLONE_PATH = "re-encode-raw-read:kikoeru-one/"
 DST_RCLONE_PATH = "re-encode-m4a-upload:kikoeru-m4a/"
 
@@ -34,9 +33,7 @@ def ls(path, include) -> list[str]:
     return files
 
 
-def main():
-    pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
-
+def diff(pool) -> list[str]:
     print("list src files")
     src_files = pool.submit(ls, SRC_RCLONE_PATH, "*.wav")  # ls(SRC_RCLONE_PATH, "*.wav")
 
@@ -45,13 +42,22 @@ def main():
 
     src_files, dst_files = src_files.result(), dst_files.result()
 
-    diff = list(
+    diff_files = list(
         set(src_files) -
         set(list(map(lambda filename: filename[:-4] + ".wav", dst_files)))
     )
-    print("diff:", len(diff))
+    print("diff:", len(diff_files))
+    return diff_files
 
-    for file in diff:
+
+def main():
+    """
+    增量转码 m4a, 不等待任务完成
+    :return:
+    """
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+
+    for file in diff(pool):
         # skip if filename starts with ._
         if os.path.basename(file).startswith("."):
             continue
@@ -71,6 +77,26 @@ def main():
         )
 
 
+def sync_main():
+    """
+    同步转码 m4a, 等待任务完成
+    :return:
+    """
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
+
+    futures = pool.map(
+        lambda file:
+        transcode.delay(
+            os.path.join(SRC_RCLONE_PATH, file),
+            os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
+        ).get(),
+        diff(pool)
+    )
+
+    for future in concurrent.futures.as_completed(futures):
+        future.result().get()
+
+
 def test():
     transcode.delay(
         "example/error.wav",
@@ -83,6 +109,6 @@ def shutdown():
 
 
 if __name__ == '__main__':
-    main()
+    sync_main()
     # shutdown()
     # test()
