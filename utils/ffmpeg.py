@@ -30,7 +30,7 @@ def single_channel_handler(src: str, dst: str, extra_args: list = None):
 def input_contains_inf_handler(src: str, dst: str, extra_args: list = None):
     # Input contains (near) NaN/+-Infs/s
     run(["apt", "update"])
-    run(["apt", "install", "sox", "-y"])
+    run(["apt", "install", "sox", "libsox-fmt-mp3", "-y"])
 
     # fallback to sox
 
