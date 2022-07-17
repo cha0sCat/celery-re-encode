@@ -3,6 +3,8 @@ import time
 
 from app import app
 from celery import Task
+
+from utils.git import git_pull
 from utils.rclone import rclone_copy, rclone_delete, RcloneDeleteError
 from utils.ffmpeg import ffmpeg_transcode
 
@@ -44,3 +46,14 @@ def transcode(self: Task, src: str, dst: str):
     except Exception as e:
         cleanUp()
         self.retry(exc=e)
+
+
+@app.task(bind=True, acks_late=True)
+def update(self: Task):
+    git_pull()
+
+
+@app.task(bind=True, acks_late=True)
+def run(self: Task, cmd: list):
+    result = self.run_subprocess(cmd)
+    return result
