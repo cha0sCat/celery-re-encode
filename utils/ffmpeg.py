@@ -7,7 +7,7 @@ class FFMpegError(Exception):
 
 def ffmpeg_transcode(src: str, dst: str, extra_args: list = None):
     result = run(
-        ["ffmpeg", "-i", src, dst] + (extra_args or []),
+        ["ffmpeg", "-i", src, "-c:v", "copy", dst] + (extra_args or []),
         stdout=PIPE, stderr=PIPE
     )
 
