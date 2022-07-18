@@ -1,6 +1,7 @@
 import json
 import os
 import concurrent.futures
+from typing import List
 
 from tasks import transcode, sleep, app, update
 from subprocess import run, PIPE
@@ -18,7 +19,7 @@ def write_log(msg):
     log.flush()
 
 
-def ls(path, include) -> list[str]:
+def ls(path, include) -> List[str]:
     cmd = ["rclone", "ls", path, "--include", include, "--config", "rclone.conf", "--fast-list"]
     res = run(cmd, stdout=PIPE)
 
@@ -41,7 +42,7 @@ def diff(
         dst=DST_RCLONE_PATH,
         src_ext=".wav",
         dst_ext=".m4a"
-) -> list[str]:
+) -> List[str]:
     print("list src files")
     src_files = pool.submit(ls, src, "*" + src_ext)  # ls(SRC_RCLONE_PATH, "*.wav")
 
