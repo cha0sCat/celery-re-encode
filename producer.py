@@ -107,10 +107,17 @@ def sync_main():
     list(map(lambda future: future.get(), futures))
 
 
-def test():
+def test_error():
     transcode.delay(
         "example/error.wav",
         "example/error.m4a"
+    ).get()
+
+
+def test_normal():
+    transcode.delay(
+        "example/raw.wav",
+        "example/raw.m4a"
     ).get()
 
 
@@ -145,9 +152,17 @@ def delete_non_exist():
 
 
 if __name__ == '__main__':
+    # 首次转码需要执行的
+    # main()
+
+    # 每日录入时需要执行的
     # sync_main()
-    # shutdown()
-    # test()
+    # delete_non_exist()
+
+    # 升级需要执行的
     # worker_update()
-    sync_main()
-    delete_non_exist()
+    # shutdown()
+
+    # 测试需要执行的
+    # test_error()
+    test_normal()
