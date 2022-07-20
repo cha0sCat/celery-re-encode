@@ -10,7 +10,16 @@ class FFMpegError(Exception):
 
 def single_channel_handler(src: str, dst: str, extra_args: list = None):
     result = run(
-        ["ffmpeg", "-i", src, "-c:v", "copy", "-ac", "2", dst] + (extra_args or []),
+        [
+            "./ffmpeg",
+            "-i", src,
+            "-c:v", "copy",
+            "-c:a", "libfdk_aac",
+            "-vbr", "5",
+            "-movflags", "+faststart",
+            "-ac", "2",
+            dst
+        ] + (extra_args or []),
         stdout=PIPE, stderr=PIPE
     )
 
@@ -38,7 +47,15 @@ def input_contains_inf_handler(src: str, dst: str, extra_args: list = None):
     mid_file = os.path.splitext(dst)[0] + ".mp3"
 
     run(["sox", src, mid_file])
-    result = run(["ffmpeg", "-i", mid_file, "-c:v", "copy", dst] + (extra_args or []))
+    result = run([
+                     "./ffmpeg",
+                     "-i", mid_file,
+                     "-c:v", "copy",
+                     "-c:a", "libfdk_aac",
+                     "-vbr", "5",
+                     "-movflags", "+faststart",
+                     dst
+                 ] + (extra_args or []))
 
     rclone_delete(mid_file, extra_args)
 
@@ -80,7 +97,15 @@ def ffmpeg_error_handler(exc: Exception, src: str, dst: str, extra_args: list = 
 
 def ffmpeg_transcode(src: str, dst: str, extra_args: list = None):
     result = run(
-        ["ffmpeg", "-i", src, "-c:v", "copy", dst] + (extra_args or []),
+        [
+            "./ffmpeg",
+            "-i", src,
+            "-c:v", "copy",
+            "-c:a", "libfdk_aac",
+            "-vbr", "5",
+            "-movflags", "+faststart",
+            dst
+        ] + (extra_args or []),
         stdout=PIPE, stderr=PIPE
     )
 
