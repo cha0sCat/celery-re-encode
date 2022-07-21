@@ -9,7 +9,7 @@ from subprocess import run, PIPE
 from utils.rclone import rclone_delete
 
 SRC_RCLONE_PATH = "re-encode-raw-read:kikoeru-one/"
-DST_RCLONE_PATH = "re-encode-m4a-upload:kikoeru-m4a/"
+DST_RCLONE_PATH = "re-encode-m4a-v2-upload:kikoeru-m4a-v2/"
 
 log = open("log.log", "a")
 
@@ -68,24 +68,35 @@ def main():
     """
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=32)
 
-    for file in diff(pool):
-        # skip if filename starts with ._
-        if os.path.basename(file).startswith("."):
-            continue
-
+    futures = pool.map(
+        lambda file:
         transcode.delay(
             os.path.join(SRC_RCLONE_PATH, file),
             os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
-        ).forget()
+        ).forgot(),
+        diff(pool)
+    )
 
-        write_log(
-            json.dumps(
-                [
-                    os.path.join(SRC_RCLONE_PATH, file),
-                    os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
-                ]
-            )
-        )
+    pool.shutdown(wait=True)
+
+    # for file in diff(pool):
+    #     # skip if filename starts with ._
+    #     if os.path.basename(file).startswith("."):
+    #         continue
+    #
+    #     transcode.delay(
+    #         os.path.join(SRC_RCLONE_PATH, file),
+    #         os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
+    #     ).forget()
+    #
+    #     write_log(
+    #         json.dumps(
+    #             [
+    #                 os.path.join(SRC_RCLONE_PATH, file),
+    #                 os.path.join(DST_RCLONE_PATH, file[:-4] + ".m4a")
+    #             ]
+    #         )
+    #     )
 
 
 def sync_main():
@@ -156,8 +167,8 @@ if __name__ == '__main__':
     # main()
 
     # 每日录入时需要执行的
-    # sync_main()
-    # delete_non_exist()
+    sync_main()
+    delete_non_exist()
 
     # 升级需要执行的
     # worker_update()
@@ -165,4 +176,4 @@ if __name__ == '__main__':
 
     # 测试需要执行的
     # test_error()
-    test_normal()
+    # test_normal()
